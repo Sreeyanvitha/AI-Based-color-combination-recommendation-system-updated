@@ -291,3 +291,19 @@ export default function AppPage({ onNavigate, darkMode, setDarkMode }) {
     </div>
   )
 }
+import { useEffect } from "react";
+
+function App() {
+
+  useEffect(() => {
+    fetch("https://your-api.onrender.com/")
+      .then(res => res.json())
+      .then(data => console.log(data));
+  }, []);
+
+  return (
+    <h1>Check console (F12)</h1>
+  );
+}
+
+export default App;
