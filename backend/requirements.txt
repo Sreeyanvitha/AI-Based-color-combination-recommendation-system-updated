@@ -1,0 +1,8 @@
+# Python 3.14 compatible — use >= pins, not == pins
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.12
+Pillow>=11.0.0
+numpy>=2.1.0
+scikit-learn>=1.5.2
+python-dotenv>=1.0.1
