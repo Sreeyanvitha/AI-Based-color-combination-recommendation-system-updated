@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Outfit Color Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  /* ─── Reset & Root ─────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0e12;
+    --surface: #16161c;
+    --surface2: #1e1e27;
+    --surface3: #252531;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #f0eee8;
+    --text-muted: #8a8799;
+    --text-dim: #5a5870;
+    --accent: #c8a96e;
+    --accent-light: #e8cfa0;
+    --good: #4caf6f;
+    --good-bg: rgba(76,175,111,0.12);
+    --avg: #d4a017;
+    --avg-bg: rgba(212,160,23,0.12);
+    --bad: #e05252;
+    --bad-bg: rgba(224,82,82,0.12);
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ─── Background Texture ────────────────────────────── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 15% 20%, rgba(200,169,110,0.06) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 60% at 85% 80%, rgba(120,100,200,0.05) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ─── Layout ────────────────────────────────────────── */
+  .container { max-width: 960px; margin: 0 auto; padding: 0 24px 80px; position: relative; z-index: 1; }
+
+  /* ─── Header ────────────────────────────────────────── */
+  header { text-align: center; padding: 56px 0 40px; }
+  header .eyebrow {
+    font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--accent); font-weight: 500; margin-bottom: 12px;
+  }
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 600; line-height: 1.15;
+    background: linear-gradient(135deg, #f0eee8 30%, #c8a96e);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 12px;
+  }
+  header p { color: var(--text-muted); font-size: 15px; max-width: 420px; margin: 0 auto; line-height: 1.6; }
+
+  /* ─── Main Grid ─────────────────────────────────────── */
+  .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+  @media (max-width: 680px) { .main-grid { grid-template-columns: 1fr; } }
+
+  /* ─── Cards ─────────────────────────────────────────── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: var(--border2); }
+  .card-title {
+    font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--accent); font-weight: 500; margin-bottom: 18px;
+  }
+
+  /* ─── Color Swatches ─────────────────────────────────── */
+  .swatch-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .swatch-item { cursor: pointer; text-align: center; }
+  .swatch {
+    width: 100%; aspect-ratio: 1;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+    position: relative;
+  }
+  .swatch:hover { transform: scale(1.06); }
+  .swatch.selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(200,169,110,0.25);
+    transform: scale(1.06);
+  }
+  .swatch.selected::after {
+    content: '✓';
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 600;
+    color: rgba(255,255,255,0.9);
+    text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  }
+  .swatch-name {
+    font-size: 11px; margin-top: 6px;
+    color: var(--text-muted); font-weight: 400;
+  }
+  .swatch-item.selected-top .swatch-name,
+  .swatch-item.selected-bottom .swatch-name {
+    color: var(--accent);
+  }
+
+  /* Selection labels */
+  .selection-labels { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .sel-label {
+    font-size: 12px; padding: 4px 12px;
+    border-radius: 20px; border: 1px solid var(--border2);
+    color: var(--text-muted);
+  }
+  .sel-label span { color: var(--text); font-weight: 500; }
+  .sel-label.active { border-color: var(--accent); color: var(--accent-light); }
+
+  /* ─── Mode Tabs ──────────────────────────────────────── */
+  .mode-tabs { display: flex; gap: 8px; margin-bottom: 18px; }
+  .mode-tab {
+    flex: 1; padding: 8px; font-size: 13px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text-muted);
+    cursor: pointer; transition: all 0.15s; font-family: inherit;
+  }
+  .mode-tab.active {
+    background: rgba(200,169,110,0.12);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* ─── Outfit Preview ─────────────────────────────────── */
+  .preview-area {
+    display: flex; gap: 16px; justify-content: center; align-items: flex-end;
+  }
+  .outfit-figure { text-align: center; flex: 1; max-width: 180px; }
+  .outfit-label { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; letter-spacing: 1px; text-transform: uppercase; }
+
+  /* SVG Silhouette */
+  .silhouette-wrap {
+    position: relative; width: 120px; margin: 0 auto;
+    cursor: default;
+  }
+  .silhouette-wrap svg { width: 100%; height: auto; display: block; }
+
+  /* Arrow between before/after */
+  .preview-arrow {
+    font-size: 22px; color: var(--accent);
+    align-self: center; flex-shrink: 0;
+    opacity: 0.7;
+  }
+
+  /* ─── Analyze Button ─────────────────────────────────── */
+  .analyze-btn {
+    width: 100%; padding: 16px;
+    background: linear-gradient(135deg, #c8a96e, #d4b87a);
+    border: none; border-radius: var(--radius);
+    color: #1a1408; font-size: 15px; font-weight: 600;
+    font-family: inherit; cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+    letter-spacing: 0.5px; margin-top: 20px;
+  }
+  .analyze-btn:hover { opacity: 0.92; transform: translateY(-1px); }
+  .analyze-btn:active { transform: translateY(0); }
+  .analyze-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* ─── Result Card ────────────────────────────────────── */
+  #result-section {
+    display: none;
+    animation: fadeUp 0.45s ease forwards;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  #result-section.visible { display: block; }
+
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 28px;
+    position: relative; overflow: hidden;
+  }
+  .result-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  }
+
+  .result-header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
+  .rating-badge {
+    padding: 6px 18px; border-radius: 20px;
+    font-size: 13px; font-weight: 600; letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
+  .rating-badge.good { background: var(--good-bg); color: var(--good); border: 1px solid rgba(76,175,111,0.3); }
+  .rating-badge.average { background: var(--avg-bg); color: var(--avg); border: 1px solid rgba(212,160,23,0.3); }
+  .rating-badge.bad { background: var(--bad-bg); color: var(--bad); border: 1px solid rgba(224,82,82,0.3); }
+
+  .result-title { font-family: 'Playfair Display', serif; font-size: 1.25rem; color: var(--text); }
+  .result-feedback { font-size: 14px; color: var(--text-muted); line-height: 1.6; }
+
+  /* Result 3-col layout */
+  .result-cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; margin-top: 24px; }
+  @media (max-width: 600px) { .result-cols { grid-template-columns: 1fr; } }
+
+  .result-col-title { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 14px; }
+
+  /* Suggested colors list */
+  .suggested-color { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .sug-dot { width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.1); }
+  .sug-name { font-size: 13px; color: var(--text-muted); }
+
+  /* Score bars */
+  .score-row { margin-bottom: 12px; }
+  .score-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-bottom: 5px; }
+  .score-bar-bg { height: 4px; background: var(--surface3); border-radius: 2px; overflow: hidden; }
+  .score-bar { height: 100%; border-radius: 2px; transition: width 0.8s ease; }
+
+  /* Preview in result */
+  .result-preview { display: flex; gap: 12px; justify-content: center; align-items: flex-end; }
+  .res-figure { text-align: center; }
+  .res-label { font-size: 11px; color: var(--text-dim); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+  /* ─── Save Button ────────────────────────────────────── */
+  .save-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 20px;
+    background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted); font-size: 13px; font-weight: 500;
+    font-family: inherit; cursor: pointer;
+    transition: all 0.15s; margin-top: 20px;
+  }
+  .save-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .save-btn svg { width: 15px; height: 15px; }
+
+  .save-toast {
+    display: inline-block; margin-top: 10px;
+    font-size: 12px; color: var(--good); opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .save-toast.show { opacity: 1; }
+
+  /* ─── Loading state ──────────────────────────────────── */
+  .loading-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(14,14,18,0.7); backdrop-filter: blur(4px);
+    z-index: 100; align-items: center; justify-content: center;
+    flex-direction: column; gap: 16px;
+  }
+  .loading-overlay.show { display: flex; }
+  .spinner {
+    width: 36px; height: 36px;
+    border: 2px solid var(--border2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 14px; color: var(--text-muted); letter-spacing: 1px; }
+
+  /* ─── Footer ─────────────────────────────────────────── */
+  footer { text-align: center; padding: 32px 0; color: var(--text-dim); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+  <p class="loading-text">Analysing outfit…</p>
+</div>
+
+<div class="container">
+  <header>
+    <p class="eyebrow">Style Intelligence</p>
+    <h1>Outfit Color Studio</h1>
+    <p>Choose colors for your top and bottom, then get an instant style rating and recommendations.</p>
+  </header>
+
+  <!-- Selector + Preview row -->
+  <div class="main-grid">
+
+    <!-- Color Picker Card -->
+    <div class="card">
+      <p class="card-title">Select Colors</p>
+
+      <div class="mode-tabs">
+        <button class="mode-tab active" id="tab-top" onclick="setMode('top')">Top</button>
+        <button class="mode-tab" id="tab-bottom" onclick="setMode('bottom')">Bottom</button>
+      </div>
+
+      <div class="selection-labels">
+        <div class="sel-label" id="lbl-top">Top: <span id="lbl-top-val">—</span></div>
+        <div class="sel-label" id="lbl-bottom">Bottom: <span id="lbl-bottom-val">—</span></div>
+      </div>
+
+      <div class="swatch-grid" id="swatch-grid">
+        <!-- Swatches injected by JS -->
+      </div>
+    </div>
+
+    <!-- Outfit Preview Card -->
+    <div class="card">
+      <p class="card-title">Preview</p>
+      <div class="preview-area">
+        <div class="outfit-figure">
+          <p class="outfit-label">Your Outfit</p>
+          <div class="silhouette-wrap" id="preview-main">
+            <!-- Silhouette SVG injected -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Analyze Button -->
+  <button class="analyze-btn" id="analyze-btn" onclick="analyzeOutfit()" disabled>
+    Analyse Outfit
+  </button>
+
+  <!-- Result Section -->
+  <div id="result-section">
+    <div class="result-card" id="result-card">
+
+      <div class="result-header">
+        <span class="rating-badge" id="rating-badge">Good</span>
+        <div>
+          <p class="result-title" id="result-title">Great combination!</p>
+          <p class="result-feedback" id="result-feedback">This combination works well — the colors complement each other naturally.</p>
+        </div>
+      </div>
+
+      <div class="result-cols">
+        <!-- Scores -->
+        <div>
+          <p class="result-col-title">Style Scores</p>
+          <div class="score-row">
+            <div class="score-label"><span>Contrast</span><span id="score-contrast">0%</span></div>
+            <div class="score-bar-bg"><div class="score-bar" id="bar-contrast" style="width:0%; background: #c8a96e;"></div></div>
+          </div>
+          <div class="score-row">
+            <div class="score-label"><span>Harmony</span><span id="score-harmony">0%</span></div>
+            <div class="score-bar-bg"><div class="score-bar" id="bar-harmony" style="width:0%; background: #4caf6f;"></div></div>
+          </div>
+          <div class="score-row">
+            <div class="score-label"><span>Versatility</span><span id="score-versatility">0%</span></div>
+            <div class="score-bar-bg"><div class="score-bar" id="bar-versatility" style="width:0%; background: #7c82d4;"></div></div>
+          </div>
+        </div>
+
+        <!-- Suggested alternatives -->
+        <div>
+          <p class="result-col-title">Try Instead</p>
+          <div id="suggested-list">
+            <!-- Injected by JS -->
+          </div>
+        </div>
+
+        <!-- Recommended outfit preview -->
+        <div>
+          <p class="result-col-title">Recommended Look</p>
+          <div class="result-preview" id="result-preview-wrap">
+            <!-- Injected by JS -->
+          </div>
+        </div>
+      </div>
+
+      <button class="save-btn" onclick="savePreview()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Save Preview
+      </button>
+      <span class="save-toast" id="save-toast">Preview saved successfully!</span>
+    </div>
+  </div>
+
+</div>
+
+<footer>Outfit Color Studio — style ratings based on classic color theory rules</footer>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// DATA: Real-world clothing colors
+// ─────────────────────────────────────────────────────────────────────────────
+const COLORS = [
+  { name: 'Black',      hex: '#1a1a1a', light: false },
+  { name: 'White',      hex: '#f4f1eb', light: true  },
+  { name: 'Navy',       hex: '#1d2d52', light: false },
+  { name: 'Beige',      hex: '#d4b896', light: true  },
+  { name: 'Grey',       hex: '#7a7f8c', light: false },
+  { name: 'Olive',      hex: '#6b6b3a', light: false },
+  { name: 'Maroon',     hex: '#6b1f1f', light: false },
+  { name: 'Denim',      hex: '#4a6fa5', light: false },
+  { name: 'Camel',      hex: '#c19a6b', light: true  },
+  { name: 'Rust',       hex: '#b5451b', light: false },
+  { name: 'Sage',       hex: '#87a083', light: true  },
+  { name: 'Blush',      hex: '#e8a898', light: true  },
+  { name: 'Charcoal',   hex: '#2f3236', light: false },
+  { name: 'Cream',      hex: '#f0e6d3', light: true  },
+  { name: 'Dusty Blue', hex: '#7598ab', light: false },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMBINATION RULES
+// key: "ColorA|ColorB" (sorted alphabetically) → { rating, scores, feedback }
+// rating: 'good' | 'average' | 'bad'
+// ─────────────────────────────────────────────────────────────────────────────
+const RULES = {};
+
+// Helper to add symmetric rule
+function addRule(a, b, rating, contrast, harmony, versatility, feedback) {
+  const key = [a, b].sort().join('|');
+  RULES[key] = { rating, scores: { contrast, harmony, versatility }, feedback };
+}
+
+// Good combos
+addRule('Black','White',      'good', 95, 90, 95, 'A timeless classic — high contrast and always sharp.');
+addRule('Black','Beige',      'good', 80, 85, 90, 'Sophisticated neutral pairing with warm balance.');
+addRule('Black','Grey',       'good', 70, 88, 92, 'Clean monochromatic look that always works.');
+addRule('Black','Maroon',     'good', 75, 82, 80, 'Deep tones with a rich, moody edge.');
+addRule('Black','Denim',      'good', 72, 80, 88, 'Casual yet polished — a street-style staple.');
+addRule('Black','Camel',      'good', 82, 87, 88, 'High contrast with a luxury feel.');
+addRule('Black','Rust',       'good', 78, 80, 78, 'Bold earthen contrast with great depth.');
+addRule('Black','Blush',      'good', 76, 82, 82, 'Edgy softness — feminine meets minimal.');
+addRule('Black','Sage',       'good', 70, 80, 80, 'Nature-meets-night with elegant restraint.');
+addRule('White','Navy',       'good', 85, 90, 95, 'Crisp nautical pairing — eternally fresh.');
+addRule('White','Beige',      'good', 55, 85, 85, 'Soft, light-toned, airy layering.');
+addRule('White','Denim',      'good', 80, 90, 95, 'The ultimate casual go-to combination.');
+addRule('White','Olive',      'good', 72, 82, 80, 'Bright and earthy — perfect for outdoorsy looks.');
+addRule('White','Sage',       'good', 68, 88, 85, 'Refreshing and calm, a natural palette.');
+addRule('White','Blush',      'good', 60, 90, 85, 'Soft, feminine, and effortlessly elegant.');
+addRule('Navy','Beige',       'good', 75, 88, 90, 'Preppy and refined — a wardrobe essential.');
+addRule('Navy','White',       'good', 85, 90, 95, 'Nautical staple with universal appeal.');
+addRule('Navy','Camel',       'good', 78, 86, 88, 'Rich warm contrast — classic tailored style.');
+addRule('Navy','Grey',        'good', 65, 85, 88, 'Understated elegance with tonal harmony.');
+addRule('Grey','White',       'good', 70, 88, 92, 'Neutral pairing with a cool, minimal feel.');
+addRule('Grey','Navy',        'good', 65, 85, 88, 'Muted and smart — reliable office combo.');
+addRule('Grey','Black',       'good', 70, 88, 92, 'A sharp monochromatic contrast.');
+addRule('Grey','Maroon',      'good', 68, 80, 82, 'Tonal cool + warm anchor — well-balanced.');
+addRule('Beige','Camel',      'good', 45, 80, 80, 'Tonal earth-tones — effortless and cohesive.');
+addRule('Beige','Olive',      'good', 55, 80, 78, 'Natural, earthy, and grounded palette.');
+addRule('Beige','Maroon',     'good', 65, 82, 80, 'Muted elegance with a heritage look.');
+addRule('Denim','White',      'good', 80, 90, 95, 'Casual perfection — the most versatile duo.');
+addRule('Denim','Camel',      'good', 70, 82, 85, 'Western warmth — rugged and stylish.');
+addRule('Denim','Grey',       'good', 60, 82, 85, 'Cool tones that layer with ease.');
+addRule('Denim','Olive',      'good', 58, 78, 80, 'Utilitarian palette with outdoorsy edge.');
+addRule('Olive','Camel',      'good', 52, 82, 78, 'Earthy warmth — cohesive and intentional.');
+addRule('Olive','Beige',      'good', 55, 80, 78, 'Neutral naturals that sit beautifully together.');
+addRule('Charcoal','White',   'good', 88, 88, 90, 'Softer than black/white but just as sharp.');
+addRule('Charcoal','Camel',   'good', 75, 85, 85, 'Sophisticated warmth against deep neutral.');
+addRule('Charcoal','Beige',   'good', 70, 84, 85, 'Low-key luxury — calm and refined.');
+addRule('Cream','Navy',       'good', 78, 88, 90, 'Soft take on the classic navy/white pairing.');
+addRule('Cream','Maroon',     'good', 62, 82, 80, 'Warm heritage palette with gentle contrast.');
+addRule('Dusty Blue','White', 'good', 72, 85, 82, 'Soft and serene — a sky-meets-light combo.');
+addRule('Dusty Blue','Camel', 'good', 65, 83, 80, 'Coastal warmth with a relaxed sophistication.');
+addRule('Blush','Grey',       'good', 58, 82, 82, 'Feminine softness anchored by cool neutral.');
+addRule('Sage','Camel',       'good', 55, 82, 78, 'Natural harmony — warm and green tones align.');
+addRule('Rust','Beige',       'good', 62, 80, 78, 'Autumnal warmth — rich and grounded.');
+addRule('Rust','Navy',        'good', 72, 80, 78, 'Unexpected pop — bold and earthy contrast.');
+addRule('Blush','White',      'good', 60, 90, 85, 'Delicate, fresh, and soft-toned.');
+addRule('Sage','White',       'good', 68, 88, 85, 'Botanical freshness with clean simplicity.');
+
+// Average combos
+addRule('Maroon','Olive',     'average', 50, 60, 60, 'Earthy but slightly heavy — pick a lighter piece.');
+addRule('Maroon','Denim',     'average', 58, 62, 65, 'Works casually, but can feel mismatched formally.');
+addRule('Maroon','Rust',      'average', 35, 50, 50, 'Both warm-red tones — add a neutral to separate.');
+addRule('Blush','Camel',      'average', 35, 68, 70, 'Very warm-toned — works with the right silhouette.');
+addRule('Blush','Beige',      'average', 28, 62, 65, 'Very similar lightness — can wash out.');
+addRule('Rust','Olive',       'average', 42, 65, 60, 'Earthy pair — needs a neutral accent piece.');
+addRule('Dusty Blue','Grey',  'average', 42, 62, 68, 'Cool tones blend too much — add contrast.');
+addRule('Dusty Blue','Navy',  'average', 40, 58, 65, 'Similar hues clash subtly — opt for lighter blue.');
+addRule('Sage','Grey',        'average', 40, 62, 65, 'Muted tones feel flat — try a warmer anchor.');
+addRule('Sage','Olive',       'average', 38, 60, 60, 'Both green-toned — interesting but tricky.');
+addRule('Camel','Beige',      'average', 45, 70, 68, 'Tonal but very close — works with texture.');
+addRule('Cream','White',      'average', 22, 60, 65, 'Too similar in tone — one washes out the other.');
+addRule('Cream','Beige',      'average', 25, 65, 65, 'Barely-there contrast — texture saves it.');
+addRule('Charcoal','Denim',   'average', 55, 68, 72, 'Decent but both casual neutrals — needs a pop.');
+addRule('Navy','Denim',       'average', 35, 55, 62, 'Too similar in color family — can look unintentional.');
+addRule('Grey','Sage',        'average', 40, 62, 65, 'Muted and flat — add a warm accent to lift it.');
+addRule('Grey','Dusty Blue',  'average', 42, 60, 65, 'Cool palette — needs a warmer piece to ground it.');
+addRule('Olive','Rust',       'average', 42, 65, 60, 'Both earthy, can clash in wrong light.');
+addRule('Rust','Camel',       'average', 38, 65, 62, 'Warm-on-warm — beautiful in sunset tones.');
+addRule('Blush','Sage',       'average', 45, 70, 68, 'Soft pastels together — can feel very washed out.');
+addRule('White','Cream',      'average', 22, 60, 65, 'Nearly identical — choose one or add contrast.');
+
+// Bad combos
+addRule('Maroon','Blush',     'bad', 45, 30, 30, 'Clashing red tones — neither dominates cleanly.');
+addRule('Maroon','Rust',      'bad', 35, 28, 32, 'Red-on-red creates visual confusion.');
+addRule('Navy','Olive',       'bad', 40, 32, 38, 'Neither dark tone is dominant — unbalanced.');
+addRule('Navy','Maroon',      'bad', 38, 30, 35, 'Two dark hues with no contrast anchor.');
+addRule('Olive','Blush',      'bad', 50, 30, 30, 'Muddy green + pink reads as discordant.');
+addRule('Rust','Blush',       'bad', 48, 28, 28, 'Warm reds at different intensities — messy.');
+addRule('Grey','Olive',       'bad', 38, 32, 40, 'Both muted and cool — drains colour from the look.');
+addRule('Dusty Blue','Maroon','bad', 45, 30, 32, 'Cool blue vs deep red creates visual tension.');
+addRule('Dusty Blue','Olive', 'bad', 38, 30, 30, 'Both muted, neither complements the other.');
+addRule('Charcoal','Maroon',  'bad', 42, 32, 38, 'Two very dark tones — no visible separation.');
+addRule('Charcoal','Navy',    'bad', 35, 30, 38, 'Both near-black — indistinguishable from afar.');
+addRule('Charcoal','Olive',   'bad', 38, 30, 35, 'Dark muted tones that absorb each other.');
+addRule('Camel','Rust',       'bad', 38, 32, 35, 'Overlapping warm hues with no contrast.');
+addRule('Cream','Blush',      'bad', 28, 30, 35, 'Both pale warm tones — flat and formless.');
+addRule('Sage','Dusty Blue',  'bad', 35, 30, 32, 'Two muted, similar-lightness cool tones.');
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SUGGESTIONS per color
+// ─────────────────────────────────────────────────────────────────────────────
+const SUGGESTIONS = {
+  'Black':      ['White','Beige','Camel'],
+  'White':      ['Navy','Denim','Black'],
+  'Navy':       ['White','Beige','Camel'],
+  'Beige':      ['Navy','Black','Maroon'],
+  'Grey':       ['Navy','White','Black'],
+  'Olive':      ['Beige','Camel','White'],
+  'Maroon':     ['Beige','Grey','Cream'],
+  'Denim':      ['White','Camel','Grey'],
+  'Camel':      ['Navy','Black','Charcoal'],
+  'Rust':       ['Navy','Black','Charcoal'],
+  'Sage':       ['White','Camel','Beige'],
+  'Blush':      ['Grey','White','Black'],
+  'Charcoal':   ['White','Camel','Beige'],
+  'Cream':      ['Navy','Charcoal','Black'],
+  'Dusty Blue': ['White','Camel','Beige'],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────────────────────────────
+let selectedTop = null;
+let selectedBottom = null;
+let activeMode = 'top'; // 'top' or 'bottom'
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INIT: Build swatches
+// ─────────────────────────────────────────────────────────────────────────────
+function buildSwatches() {
+  const grid = document.getElementById('swatch-grid');
+  grid.innerHTML = '';
+  COLORS.forEach(color => {
+    const item = document.createElement('div');
+    item.className = 'swatch-item';
+    item.id = `swatch-${color.name}`;
+    item.innerHTML = `
+      <div class="swatch" style="background:${color.hex};" onclick="selectColor('${color.name}')"></div>
+      <p class="swatch-name">${color.name}</p>
+    `;
+    grid.appendChild(item);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Human SVG silhouette (simplified)
+// ─────────────────────────────────────────────────────────────────────────────
+function buildSilhouette(topHex, bottomHex, container) {
+  const topFill  = topHex    || '#2a2a2a';
+  const botFill  = bottomHex || '#2a2a2a';
+  const skinTone = '#c8a882';
+
+  container.innerHTML = `
+  <svg viewBox="0 0 100 200" xmlns="http://www.w3.org/2000/svg">
+    <!-- Head -->
+    <ellipse cx="50" cy="22" rx="14" ry="16" fill="${skinTone}"/>
+    <!-- Neck -->
+    <rect x="45" y="34" width="10" height="8" rx="3" fill="${skinTone}"/>
+    <!-- Shirt/Top -->
+    <path d="M28,42 Q20,45 18,55 L22,80 Q28,84 50,84 Q72,84 78,80 L82,55 Q80,45 72,42 Q64,38 58,42 L55,48 Q52,52 48,52 Q45,52 42,48 L40,42 Q34,38 28,42 Z" fill="${topFill}"/>
+    <!-- Arms -->
+    <path d="M20,46 Q12,56 14,72 Q16,78 20,78 Q22,78 23,74 L22,58 L28,50 Z" fill="${topFill}"/>
+    <path d="M80,46 Q88,56 86,72 Q84,78 80,78 Q78,78 77,74 L78,58 L72,50 Z" fill="${topFill}"/>
+    <!-- Hands -->
+    <ellipse cx="17" cy="76" rx="5" ry="6" fill="${skinTone}"/>
+    <ellipse cx="83" cy="76" rx="5" ry="6" fill="${skinTone}"/>
+    <!-- Pants/Bottom -->
+    <rect x="33" y="82" width="34" height="4" rx="2" fill="${botFill}" opacity="0.85"/>
+    <path d="M33,86 L28,140 Q28,148 36,148 Q42,148 44,140 L50,110 L56,140 Q58,148 64,148 Q72,148 72,140 L67,86 Z" fill="${botFill}"/>
+    <!-- Shoes -->
+    <ellipse cx="34" cy="148" rx="9" ry="5" fill="#1a1a1a"/>
+    <ellipse cx="66" cy="148" rx="9" ry="5" fill="#1a1a1a"/>
+  </svg>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODE TOGGLE
+// ─────────────────────────────────────────────────────────────────────────────
+function setMode(mode) {
+  activeMode = mode;
+  document.getElementById('tab-top').classList.toggle('active', mode === 'top');
+  document.getElementById('tab-bottom').classList.toggle('active', mode === 'bottom');
+  // Highlight active swatch
+  updateSwatchHighlights();
+}
+
+function updateSwatchHighlights() {
+  document.querySelectorAll('.swatch-item').forEach(item => {
+    const name = item.querySelector('.swatch-name').textContent;
+    item.querySelector('.swatch').classList.remove('selected');
+    item.className = 'swatch-item';
+    if (name === selectedTop)    item.classList.add('selected-top');
+    if (name === selectedBottom) item.classList.add('selected-bottom');
+
+    if (activeMode === 'top'    && name === selectedTop)    item.querySelector('.swatch').classList.add('selected');
+    if (activeMode === 'bottom' && name === selectedBottom) item.querySelector('.swatch').classList.add('selected');
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SELECT COLOR
+// ─────────────────────────────────────────────────────────────────────────────
+function selectColor(name) {
+  if (activeMode === 'top') {
+    selectedTop = name;
+    document.getElementById('lbl-top-val').textContent = name;
+    document.getElementById('lbl-top').classList.add('active');
+    // Auto-switch to bottom mode
+    setMode('bottom');
+  } else {
+    selectedBottom = name;
+    document.getElementById('lbl-bottom-val').textContent = name;
+    document.getElementById('lbl-bottom').classList.add('active');
+  }
+  updateSwatchHighlights();
+  refreshPreview();
+  // Enable button
+  document.getElementById('analyze-btn').disabled = !(selectedTop && selectedBottom);
+}
+
+function refreshPreview() {
+  const topColor    = COLORS.find(c => c.name === selectedTop);
+  const bottomColor = COLORS.find(c => c.name === selectedBottom);
+  buildSilhouette(
+    topColor ? topColor.hex : null,
+    bottomColor ? bottomColor.hex : null,
+    document.getElementById('preview-main')
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LOOK UP RULE (fallback = average)
+// ─────────────────────────────────────────────────────────────────────────────
+function getRating(top, bottom) {
+  const key = [top, bottom].sort().join('|');
+  return RULES[key] || {
+    rating: 'average',
+    scores: { contrast: 55, harmony: 58, versatility: 60 },
+    feedback: 'This combination could be improved — try a more contrasting or complementary color.'
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ANALYSE
+// ─────────────────────────────────────────────────────────────────────────────
+function analyzeOutfit() {
+  if (!selectedTop || !selectedBottom) return;
+
+  // Show loading
+  document.getElementById('loading').classList.add('show');
+
+  setTimeout(() => {
+    document.getElementById('loading').classList.remove('show');
+    renderResult();
+  }, 900);
+}
+
+function renderResult() {
+  const rule = getRating(selectedTop, selectedBottom);
+  const { rating, scores, feedback } = rule;
+
+  // Badge
+  const badge = document.getElementById('rating-badge');
+  badge.className = `rating-badge ${rating}`;
+  const ratingLabels = { good: '✦ Good', average: '◈ Average', bad: '✕ Bad' };
+  badge.textContent = ratingLabels[rating];
+
+  // Title
+  const titles = {
+    good: 'Great combination!',
+    average: 'Acceptable pairing',
+    bad: 'Clashing combo'
+  };
+  document.getElementById('result-title').textContent = titles[rating];
+  document.getElementById('result-feedback').textContent = feedback;
+
+  // Score bars (animate)
+  ['contrast', 'harmony', 'versatility'].forEach(s => {
+    document.getElementById(`score-${s}`).textContent = scores[s] + '%';
+    setTimeout(() => {
+      document.getElementById(`bar-${s}`).style.width = scores[s] + '%';
+    }, 100);
+  });
+
+  // Suggested alternatives
+  const sugs = SUGGESTIONS[selectedTop] || [];
+  const sugList = document.getElementById('suggested-list');
+  sugList.innerHTML = '';
+  sugs.slice(0,3).forEach(name => {
+    const col = COLORS.find(c => c.name === name);
+    if (!col) return;
+    sugList.innerHTML += `
+      <div class="suggested-color">
+        <div class="sug-dot" style="background:${col.hex};"></div>
+        <span class="sug-name">${col.name}</span>
+      </div>`;
+  });
+
+  // Recommended outfit preview — best pair for top
+  const bestBottom = (SUGGESTIONS[selectedTop] || ['Black'])[0];
+  const bestCol = COLORS.find(c => c.name === bestBottom);
+  const topCol  = COLORS.find(c => c.name === selectedTop);
+  const wrap = document.getElementById('result-preview-wrap');
+  wrap.innerHTML = '';
+
+  // Before
+  const before = document.createElement('div');
+  before.className = 'res-figure';
+  before.innerHTML = `<p class="res-label">Before</p>`;
+  const beforeSil = document.createElement('div');
+  beforeSil.style.width = '70px';
+  buildSilhouette(topCol ? topCol.hex : '#333', COLORS.find(c=>c.name===selectedBottom)?.hex || '#555', beforeSil);
+  before.appendChild(beforeSil);
+  wrap.appendChild(before);
+
+  // Arrow
+  const arrow = document.createElement('div');
+  arrow.textContent = '→';
+  arrow.style.cssText = 'font-size:18px; color: var(--accent); align-self: center; opacity:0.7;';
+  wrap.appendChild(arrow);
+
+  // After
+  const after = document.createElement('div');
+  after.className = 'res-figure';
+  after.innerHTML = `<p class="res-label">After</p>`;
+  const afterSil = document.createElement('div');
+  afterSil.style.width = '70px';
+  buildSilhouette(topCol ? topCol.hex : '#333', bestCol ? bestCol.hex : '#1a1a1a', afterSil);
+  after.appendChild(afterSil);
+  wrap.appendChild(after);
+
+  // Show section
+  const sec = document.getElementById('result-section');
+  sec.classList.add('visible');
+  sec.style.marginTop = '20px';
+  sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SAVE PREVIEW
+// ─────────────────────────────────────────────────────────────────────────────
+function savePreview() {
+  const card = document.getElementById('result-card');
+  html2canvas(card, {
+    backgroundColor: '#16161c',
+    scale: 2,
+    useCORS: true,
+    logging: false
+  }).then(canvas => {
+    // Download
+    const link = document.createElement('a');
+    link.download = `outfit-preview-${selectedTop}-${selectedBottom}.png`.toLowerCase().replace(/ /g,'-');
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+
+    // Also save to localStorage
+    const data = {
+      top: selectedTop,
+      bottom: selectedBottom,
+      timestamp: new Date().toISOString()
+    };
+    const saves = JSON.parse(localStorage.getItem('outfitSaves') || '[]');
+    saves.push(data);
+    localStorage.setItem('outfitSaves', JSON.stringify(saves));
+
+    // Toast
+    const toast = document.getElementById('save-toast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3000);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BOOT
+// ─────────────────────────────────────────────────────────────────────────────
+buildSwatches();
+buildSilhouette(null, null, document.getElementById('preview-main'));
+</script>
+</body>
+</html>
